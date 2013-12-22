@@ -15,18 +15,17 @@ class Timer:
         return str(self.duration())
 
     def time_end(self, ratio):
-        timenow = datetime.datetime.now()
-        timedelta = timenow - self.starttime
-        return (timenow + timedelta / ratio).strftime(self.timeendformat)
+        return (self.starttime + self.duration() / ratio).strftime(self.timeendformat)
 
     def time_left(self, ratio):
-        timenow = datetime.datetime.now()
-        timedelta = timenow - self.starttime
-        seconds_left = (timedelta / ratio * (1 - ratio)).total_seconds()
-        return "{}h{}m".format(*divmod(seconds_left // 60, 60))
+        seconds_left = self._time_left(ratio).total_seconds()
+        return "{:.0f}h{:02.0f}m".format(*divmod(seconds_left // 60, 60))
+
+    def _time_left(self, ratio):
+        return self.duration() / ratio * (1 - ratio)
 
     def time_taken(self):
-        return "{}h{}m".format(*divmod(self.duration().total_seconds // 60, 60))
+        return "{:.0f}h{:02.0f}m".format(*divmod(self.duration().total_seconds() // 60, 60))
 
 
 if __name__ == '__main__':
