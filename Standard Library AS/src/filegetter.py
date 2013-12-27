@@ -20,7 +20,7 @@ class FileGetter:
         if os.path.exists(filename):
             count = 1
             while 1:
-                ext_filename = filename + "-{}".format(count)
+                ext_filename = filename + "-{}".format(count)  # split extension!
                 if not os.path.exists(ext_filename):
                     return ext_filename
                 count += 1
