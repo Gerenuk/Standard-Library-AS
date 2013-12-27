@@ -63,4 +63,4 @@ if __name__ == '__main__':
     time.sleep(2)
     pprint(t.info(0.1))
     print(t.text(0.1))
->>>>>>> refs/remotes/origin/master
+
