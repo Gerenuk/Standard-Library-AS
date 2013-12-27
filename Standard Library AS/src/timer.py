@@ -15,14 +15,20 @@ class Timer:
         return str(self.duration())
 
     def time_end(self, ratio):
-        return (self.starttime + self.duration() / ratio).strftime(self.timeendformat)
+        if ratio > 0.01:
+            return (self.starttime + self.duration() / ratio).strftime(self.timeendformat)
+        else:
+            return datetime.timedelta(0)
 
     def time_left(self, ratio):
         seconds_left = self._time_left(ratio).total_seconds()
         return "{:.0f}h{:02.0f}m".format(*divmod(seconds_left // 60, 60))
 
     def _time_left(self, ratio):
-        return self.duration() / ratio * (1 - ratio)
+        if ratio > 0.01:
+            return self.duration() / ratio * (1 - ratio)
+        else:
+            return datetime.timedelta(0)
 
     def time_taken(self):
         return "{:.0f}h{:02.0f}m".format(*divmod(self.duration().total_seconds() // 60, 60))
