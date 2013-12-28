@@ -10,10 +10,10 @@ class QuickProfile:
 
         self.profiler = cProfile.Profile()
 
-    def __enter__(self):  # TODO arguments?
+    def __enter__(self):
         self.profiler.enable()
 
-    def __exit__(self):
+    def __exit__(self, type, value, traceback):  # TODO
         self.profiler.disable()
         if self.profile_dumpfile:
             self.profiler.dump_stats(self.profile_dumpfile)

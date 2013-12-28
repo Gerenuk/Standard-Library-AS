@@ -27,6 +27,24 @@ class KaggleSubmitter:
                 writer.writerow(row)
         print("Submission file {} created with {} data points".format(filename, len(data)))
 
+    def read(self, filename):
+        if self.dest_file_getter:
+            filename = self.dest_file_getter(filename)
+
+        if self.gzip or filename.endswith(".gz"):
+            file = io.TextIOWrapper(gzip.open(filename), newline="")
+        else:
+            file = open(filename, newline="")
+
+        data = []
+        with file:
+            reader = csv.reader(file)
+            header = next(reader)
+            for row in reader:
+                data.append(row)
+        print("Submission file {} read with {} data points".format(filename, len(data)))
+        return data
+
     def open_browser(self):
         if self.web_kaggle_urlname:
             webbrowser.open_new_tab("http://www.kaggle.com/c/{}/submissions/attach".format(self.web_kaggle_urlname))

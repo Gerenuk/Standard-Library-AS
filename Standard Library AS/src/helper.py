@@ -5,12 +5,14 @@ QUALI_COLOR_PARAM = ['Paired', 'Qualitative', 12]
 
 
 CMAP = brewer2mpl.get_map(*QUALI_COLOR_PARAM)
-def get_quali_color(hashable=None):
+
+
+def get_quali_color(hashable=None, color_type="hex_colors"):
     if hashable is None:
         color = random.randrange(12)
     else:
         color = (hash(hashable) & 255) % QUALI_COLOR_PARAM[2]
-    return CMAP.hex_colors[color]
+    return getattr(CMAP, color_type)[color]
 
 
 class CycleCounter:
@@ -24,6 +26,24 @@ class CycleCounter:
             self.count = 0
             return True
         return False
+
+
+class CycleCaller:
+    def __init__(self, cycle, obj):
+        self.cycle = cycle
+        self.obj = obj
+        self.count = 0
+
+    def __getattr__(self, name):
+        self.count += 1
+        if self.count >= self.cycle:
+            self.count = 0
+            return getattr(self.obj, name)
+        else:
+            return self._void
+
+    def _void(self, *args, **kwargs):
+        pass
 
 
 class MaxFinder:

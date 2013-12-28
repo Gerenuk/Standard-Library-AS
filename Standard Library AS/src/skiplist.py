@@ -1,11 +1,12 @@
 import math
+import random
 
 from numpy.random import geometric
 
 import collections.abc as colabc
 
 
-__all__ = ('SkipListDict',)
+__all__ = ('SkipListDict', 'SkipListDictDefault', 'SkipListSet')
 #===============================================================================
 # TODO:
 # - why math.e
@@ -23,11 +24,12 @@ class SkipListDict(colabc.MutableMapping):
         self._head = self._make_node(self._max_level, None, None)
         self._nil = self._make_node(-1, None, None)
         self._tail = self._nil
-        self._head[3:] = [self._nil for _ in range(self._max_level)]
+        self._head[3:] = [self._nil for _ in range(1 + self._max_level)]  # fixed +1
         self._update = [self._head] * (1 + self._max_level)
         self._p = p
         self._size = 0
         self._capacity = capacity
+        self._last_getitem = None  # will be set to (node, update) by setdefault
 
     @property
     def capacity(self):
@@ -40,11 +42,18 @@ class SkipListDict(colabc.MutableMapping):
         return node
 
     def _random_level(self):
-        lvl = geometric(self._p)
-        return (lvl if lvl <= self._level else
-                self._level + 1 if self._level + 1 <= self._max_level else
-                self._max_level)
+        lvl = 0
+        max_level = min(self._max_level, self._level + 1)
+        while random.random() < self._p and lvl < max_level:
+            lvl += 1
         return lvl
+
+#     def _random_level(self):
+#         lvl = geometric(self._p)
+#         return (lvl if lvl <= self._level else
+#                 self._level + 1 if self._level + 1 < self._max_level else
+#                 self._max_level)
+#         return lvl
 
     def pop(self):
         if self._size < 1:
@@ -82,8 +91,8 @@ class SkipListDict(colabc.MutableMapping):
         if start_key is not None:
             update = self._update[:]
             found = self._find_less(update, start_key)
-            if found[3] is not self._nil:
-                node = found[3]
+            # if found[3] is not self._nil: # OTHERWISE keys beyond largest yield full list
+            node = found[3]
         idx = 2 if reverse else 3
         while node[0] is not None:
             yield node[0], node[1]
@@ -136,6 +145,33 @@ class SkipListDict(colabc.MutableMapping):
                 node[3][2] = node
 
             self._size += 1
+
+    def setdefault(self, key, default):
+        assert key is not None
+        update = self._update[:]
+        node = self._find_less(update, key)
+        prev = node
+        node = node[3]
+
+        if node[0] != key:
+            lvl = self._random_level()
+            if lvl > self._level:
+                self._level = lvl
+            node = self._make_node(lvl, key, default)
+            node[2] = prev
+
+            for i in range(0, lvl + 1):
+                node[3 + i] = update[i][3 + i]  # bug
+                update[i][3 + i] = node
+
+            if node[3] is self._nil:
+                self._tail = node
+            else:
+                node[3][2] = node
+
+            self._size += 1
+        self._last_getitem = (node, update)
+        return node[1]
 
     def __delitem__(self, key):
         update = self._update[:]
@@ -211,3 +247,31 @@ class SkipListSet(colabc.MutableSet):
     def __repr__(self):
         return '{0.__class__.__name__}({1!r}, capacity={0._storage.capacity})'.format(
             self, tuple(self))
+
+
+class SkipListDictDefault(SkipListDict):
+    def __init__(self, default_class, **kwargs):
+        SkipListDict.__init__(self, **kwargs)
+        self._default_class = default_class
+
+    def __getitem__(self, key):
+        return self.setdefault(key, self._default_class())
+
+    def remove_empty_last(self):
+        node, update = self._last_getitem
+        if not node[1]:
+            node[3][2] = update[0]
+
+            for i in range(self._level + 1):
+                if update[i][3 + i] is not node:
+                    break
+
+                update[i][3 + i] = node[3 + i]
+
+            while self._level > 0 and self._head[3 + self._level][0] is None:
+                self._level -= 1
+
+            if self._tail is node:
+                self._tail = node[2]
+
+            self._size -= 1
